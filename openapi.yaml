@@ -1,111 +1,148 @@
 openapi: 3.0.3
 info:
-  title: Audio Transcription API
-  description: API for transcribing audio files using various transcription engines
-  version: 1.0.0
+    title: Audio Transcription API
+    description: API for transcribing audio files using various transcription engines
+    version: 1.0.1
+servers:
+    - url: http://localhost/api
+      description: Local server
+    - url: https://api.example.com
+      description: Production server
 paths:
-  /transcriptions:
-    post:
-      summary: Transcribe an audio file
-      description: Upload an audio file for transcription using a specified transcription engine.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
+    /transcriptions:
+        post:
+            operationId: createTranscription
+            summary: Transcribe an audio file
+            description: Upload an audio file for transcription using a specified transcription engine.
+            requestBody:
+                required: true
+                content:
+                    multipart/form-data:
+                        schema:
+                            $ref: "#/components/schemas/CreateTranscriptionRequest"
+            responses:
+                "201":
+                    description: Transcription created successfully
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/CreateTranscriptionResponse"
+                "400":
+                    description: Invalid request (missing file or unavailable transcriber)
+        get:
+            operationId: getTranscriptions
+            summary: List past transcriptions
+            description: Retrieve a list of all previously processed transcriptions.
+            responses:
+                "200":
+                    description: List of transcriptions
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/TranscriptionItem"
+                                x-faker:
+                                    type: array
+                                    minItems: 0
+                                    maxItems: 5
+    /transcriptions/{transcription_id}:
+        delete:
+            operationId: deleteTranscription
+            summary: Delete a transcription
+            description: Delete a specific transcription using its unique identifier.
+            parameters:
+                - in: path
+                  name: transcription_id
+                  schema:
+                      type: string
+                  required: true
+                  description: The identifier of the transcription to delete
+            responses:
+                "204":
+                    description: Transcription deleted successfully
+                "404":
+                    description: Transcription not found
+    /transcribers:
+        get:
+            operationId: getTranscribers
+            summary: List available transcribers
+            description: Retrieve a list of available transcription engines for audio transcription.
+            responses:
+                "200":
+                    description: List of available transcribers
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    $ref: "#/components/schemas/TranscriberItem"
+components:
+    schemas:
+        CreateTranscriptionRequest:
+            title: CreateTranscriptionRequest
+            type: object
+            properties:
                 file:
-                  type: string
-                  format: binary
-                  description: The audio file to transcribe
+                    type: string
+                    format: binary
+                    description: The audio file to transcribe
                 transcriber:
-                  type: string
-                  description: The transcription engine to use
-              required:
+                    type: string
+                    description: The transcription engine to use
+            required:
                 - file
                 - transcriber
-      responses:
-        '201':
-          description: Transcription created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  transcription_id:
+        CreateTranscriptionResponse:
+            title: CreateTranscriptionResponse
+            type: object
+            properties:
+                transcription_id:
                     type: string
                     description: Unique identifier for the transcription
-                  status:
+                    x-faker: internet.uuid
+                status:
                     type: string
                     example: "processing"
-        '400':
-          description: Invalid request (missing file or unavailable transcriber)
-    get:
-      summary: List past transcriptions
-      description: Retrieve a list of all previously processed transcriptions.
-      responses:
-        '200':
-          description: List of transcriptions
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    transcription_id:
-                      type: string
-                      description: Unique identifier for the transcription
-                    transcriber:
-                      type: string
-                      description: Transcription engine used
-                    date:
-                      type: string
-                      format: date-time
-                      description: Date of the transcription
-                    status:
-                      type: string
-                      description: Status of the transcription
-                    transcription_text:
-                      type: string
-                      description: Transcribed text, if available
-  /transcriptions/{transcription_id}:
-    delete:
-      summary: Delete a transcription
-      description: Delete a specific transcription using its unique identifier.
-      parameters:
-        - in: path
-          name: transcription_id
-          schema:
-            type: string
-          required: true
-          description: The identifier of the transcription to delete
-      responses:
-        '204':
-          description: Transcription deleted successfully
-        '404':
-          description: Transcription not found
-  /transcribers:
-    get:
-      summary: List available transcribers
-      description: Retrieve a list of available transcription engines for audio transcription.
-      responses:
-        '200':
-          description: List of available transcribers
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id:
-                      type: string
-                      description: Unique identifier for the transcriber
-                    name:
-                      type: string
-                      description: Name of the transcriber
-                    description:
-                      type: string
-                      description: Description of the transcriber and its capabilities
+                    x-faker: random.arrayElement(["processing", "completed", "failed"])
+        TranscriptionItem:
+            title: TranscriptionItem
+            type: object
+            properties:
+                transcription_id:
+                    type: string
+                    description: Unique identifier for the transcription
+                    x-faker: internet.uuid
+                transcriber:
+                    type: string
+                    description: Transcription engine used
+                    x-faker: random.arrayElement(["engine1", "engine2", "engine3"])
+                date:
+                    type: string
+                    format: date-time
+                    description: Date of the transcription
+                    x-faker: date.recent
+                status:
+                    type: string
+                    description: Status of the transcription
+                    x-faker: random.arrayElement(["processing", "completed", "failed"])
+                transcription_text:
+                    type: string
+                    description: Transcribed text, if available
+                    x-faker: lorem.sentence
+        TranscriberItem:
+            title: TranscriberItem
+            type: object
+            properties:
+                id:
+                    type: string
+                    description: Unique identifier for the transcriber
+                    x-faker: internet.uuid
+                name:
+                    type: string
+                    description: Name of the transcriber
+                    x-faker: company.companyName
+                description:
+                    type: string
+                    description: Description of the transcriber and its capabilities
+                    x-faker: lorem.sentences
